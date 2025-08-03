@@ -15,6 +15,6 @@ RUN mkdir -p /etc/apt/keyrings \
 RUN apt update && apt install -y isolate
 
 ARG JAR_FILE="build/libs/c204-be-judge-0.0.1-SNAPSHOT.jar"
-COPY ${JAR_FILE} app.jar
+COPY ${JAR_FILE} c204-be-judge.jar
 
-ENTRYPOINT ["java", "-jar", "-Dspring.profiles.active=prod", "app.jar"]
+ENTRYPOINT ["java", "-jar", "-Dspring.profiles.active=prod", "c204-be-judge.jar"]
