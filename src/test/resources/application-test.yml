@@ -1,14 +1,14 @@
 server:
-  port: 8082
+  port: ${SERVER_PORT}
 
 spring:
   config:
     import: optional:file:.env[.properties]
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${MYSQL_HOST}:${MYSQL_LOCAL_PORT}/${MYSQL_DATABASE}?serverTimezone=Asia/Seoul&characterEncoding=utf8
-    username: ${MYSQL_USERNAME}
-    password: ${MYSQL_PASSWORD}
+    url: jdbc:mysql://${MYSQL_LOCAL_HOST}:${MYSQL_LOCAL_PORT}/${MYSQL_DATABASE}?serverTimezone=Asia/Seoul&characterEncoding=utf8
+    username: ${MYSQL_LOCAL_USERNAME}
+    password: ${MYSQL_LOCAL_PASSWORD}
 
   jpa:
     hibernate:
@@ -17,6 +17,16 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.MySQL8Dialect
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+    judge:
+      exchange-name: judge.exchange
+      queue-name: judge.queue
+      routing-key: judge.routing.#
 
 logging:
   level:
