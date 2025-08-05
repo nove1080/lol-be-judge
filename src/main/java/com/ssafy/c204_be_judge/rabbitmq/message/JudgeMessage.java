@@ -12,5 +12,7 @@ public class JudgeMessage {
     private Long problemId;
     private String programmingLanguage;
     private String sourceCode;
+    private Double timeLimit;
+    private Integer memoryLimit;
 
 }
