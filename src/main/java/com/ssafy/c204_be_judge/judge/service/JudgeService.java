@@ -16,27 +16,27 @@ public class JudgeService {
     private static final String ISOLATE_ROOT = "/var/lib/isolate/";
 
     public JudgeResult run(JudgeCommand judgeCommand) {
-        prepareSandbox(judgeCommand);
-        sendSourceCode(judgeCommand, writeSourceCode(judgeCommand));
+        sendCompiledCode(judgeCommand, writeSourceCode(judgeCommand));
 
         int totalTestcaseCount = getTotalTestcaseCount(judgeCommand);
-        sendTestcase(judgeCommand);
         compile(judgeCommand);
 
         int maxRunningTime = 0;
-        for (int i = 1; i < totalTestcaseCount + 1; i++) {
-            executeSourceCode(judgeCommand, i);
-            checkAnswer(judgeCommand, i);
+        for (int testcaseNum = 1; testcaseNum < totalTestcaseCount + 1; testcaseNum++) {
+            prepareSandbox(testcaseNum);
+            sendTestcase(judgeCommand, testcaseNum);
+            executeSourceCode(judgeCommand, testcaseNum);
+            checkAnswer(judgeCommand, testcaseNum);
         }
 
         return null;
     }
 
-    private static void prepareSandbox(JudgeCommand judgeCommand) {
+    private static void prepareSandbox(int boxId) {
         ProcessBuilder pb = new ProcessBuilder(
                 "wsl", "-d", "ubuntu", "-u", "root", "--",
                 "isolate",
-                "--box-id=" + judgeCommand.problemId(),
+                "--box-id=" + boxId,
                 "--init"
         );
 
@@ -69,7 +69,7 @@ public class JudgeService {
         return filePath;
     }
 
-    private static void sendSourceCode(JudgeCommand judgeCommand, String filePath) {
+    private static void sendCompiledCode(JudgeCommand judgeCommand, String filePath) {
         filePath = "/mnt/c/Users/SSAFY/sourceCode/" + judgeCommand.problemId() + "/Main.java"; //todo 제거
         final String destPath = ISOLATE_ROOT + judgeCommand.problemId() + "/box/";
 
@@ -94,6 +94,7 @@ public class JudgeService {
     private static int getTotalTestcaseCount(JudgeCommand judgeCommand) {
         final String baseDir = System.getProperty("user.home");
         final String dirPath = baseDir + "/testcases/" + judgeCommand.problemId(); //todo 배포 환경으로 맞게 변경
+
         File dir = new File(dirPath);
         if (!dir.exists() || !dir.isDirectory()) {
             throw new IllegalArgumentException("디렉토리가 유효하지 않습니다! [경로: %s]".formatted(dirPath));
@@ -102,7 +103,11 @@ public class JudgeService {
         return dir.list((f, name) -> name.contains(".in")).length;
     }
 
-    private static void sendTestcase(JudgeCommand judgeCommand) {
+    /**
+     * 문제 번호에 맞는 모든 테스트케이스를 샌드박스로 전송합니다.
+     * @param judgeCommand
+     */
+    private static void sendAllTestcase(JudgeCommand judgeCommand) {
         final String originPath = "/mnt/c/Users/SSAFY/testcases/" + judgeCommand.problemId(); //todo 배포 환경으로 맞게 변경
         final String destPath = ISOLATE_ROOT + judgeCommand.problemId() + "/box/testcases/";
 
@@ -113,6 +118,33 @@ public class JudgeService {
         ProcessBuilder pb = new ProcessBuilder(
                 "wsl", "-d", "ubuntu", "-u", "root", "--",
                 "/bin/sh", "-c", command
+        );
+
+        try {
+            Process process = pb.start();
+            logging(process);
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * 문제 번호에 해당하는 테스트케이스 중 하나를 샌드박스로 전송합니다.
+     * @param judgeCommand 채점 명령
+     * @param testcaseNum 전송할 테스트케이스 번호
+     */
+    private static void sendTestcase(JudgeCommand judgeCommand, int testcaseNum) {
+        final String originPath = "/mnt/c/Users/SSAFY/testcases/" + judgeCommand.problemId() + "/" + testcaseNum + "*"; //todo 배포 환경으로 맞게 변경
+        final String destPath = ISOLATE_ROOT + judgeCommand.problemId() + "/box/testcases/";
+
+        final String makeDestDirCommand = "mkdir -p " + destPath;
+        final String copyTestcaseCommand = "cp -r " + originPath + " " + destPath;
+        final String command = makeDestDirCommand + " && " + copyTestcaseCommand;
+
+        ProcessBuilder pb = new ProcessBuilder(
+            "wsl", "-d", "ubuntu", "-u", "root", "--",
+            "/bin/sh", "-c", command
         );
 
         try {
@@ -152,7 +184,7 @@ public class JudgeService {
         ProcessBuilder pb = new ProcessBuilder(
                 "wsl", "-d", "ubuntu", "-u", "root", "--",
                 "isolate",
-                "--box-id=" + judgeCommand.problemId(),
+                "--box-id=" + testcaseNum,
                 "--processes=128",
                 "--dir=/usr/lib/jvm",
                 "--dir=/etc/java-17-openjdk/security",
@@ -203,11 +235,11 @@ public class JudgeService {
         return isCorrect;
     }
 
-    private static void cleanup(JudgeCommand judgeCommand) {
+    private static void cleanup(int boxId) {
         ProcessBuilder pb = new ProcessBuilder(
                 "wsl", "-d", "ubuntu", "-u", "root", "--",
                 "isolate",
-                "--box-id=" + judgeCommand.problemId(),
+                "--box-id=" + boxId,
                 "--cleanup"
         );
 
