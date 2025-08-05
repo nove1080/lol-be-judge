@@ -7,7 +7,9 @@ import lombok.Builder;
 public record JudgeCommand (
         Long problemId,
         String programmingLanguage,
-        String sourceCode
+        String sourceCode,
+        Double timeLimit,
+        Integer memoryLimit
 ) {
 
     public static JudgeCommand from(JudgeMessage message) {
@@ -15,6 +17,8 @@ public record JudgeCommand (
                 .problemId(message.getProblemId())
                 .programmingLanguage(message.getProgrammingLanguage())
                 .sourceCode(message.getSourceCode())
+                .timeLimit(message.getTimeLimit())
+                .memoryLimit(message.getMemoryLimit())
                 .build();
     }
 
