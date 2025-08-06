@@ -1,42 +1,60 @@
 package com.ssafy.c204_be_judge.judge.service;
 
 import com.ssafy.c204_be_judge.judge.command.JudgeCommand;
-
-import java.io.*;
-
 import com.ssafy.c204_be_judge.judge.result.JudgeResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
+import java.util.stream.IntStream;
+
 @Service
 @Slf4j
-public class JudgeService {
+public class JudgeServiceV2 {
 
     private static final String OUTPUT_FILE = "output.txt";
     private static final String ISOLATE_ROOT = "/var/lib/isolate/";
+    private static final List<Integer> boxIds = List.of(1, 2, 3, 4, 5, 6, 7, 8);
 
     public JudgeResult run(JudgeCommand judgeCommand) {
-        prepareSandbox(judgeCommand);
-        sendSourceCode(judgeCommand, writeSourceCode(judgeCommand));
-
-        int totalTestcaseCount = getTotalTestcaseCount(judgeCommand);
-        sendTestcase(judgeCommand);
+        String codePath = writeSourceCode(judgeCommand);
         compile(judgeCommand);
 
-        int maxRunningTime = 0;
-        for (int i = 1; i < totalTestcaseCount + 1; i++) {
-            executeSourceCode(judgeCommand, i);
-            checkAnswer(judgeCommand, i);
+        int totalTestcaseCount = getTotalTestcaseCount(judgeCommand);
+
+        ForkJoinPool forkJoinPool = new ForkJoinPool(15);
+
+        try {
+            forkJoinPool
+                    .submit(() -> IntStream.range(1, totalTestcaseCount + 1)
+                            .parallel()
+                            .forEach(testcase -> {
+                                prepareSandbox(testcase);
+                                sendSourceCode(judgeCommand, testcase, codePath);
+                                sendTestcase(judgeCommand, testcase, testcase);
+                                executeSourceCode(judgeCommand, testcase, testcase);
+                                checkAnswer(judgeCommand, testcase, testcase);
+                            })
+                    )
+                    .get();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
         }
 
         return null;
     }
 
-    private static void prepareSandbox(JudgeCommand judgeCommand) {
+    private static void prepareSandbox(int boxId) {
         ProcessBuilder pb = new ProcessBuilder(
                 "wsl", "-d", "ubuntu", "-u", "root", "--",
                 "isolate",
-                "--box-id=" + judgeCommand.problemId(),
+                "--box-id=" + boxId,
                 "--init"
         );
 
@@ -69,9 +87,9 @@ public class JudgeService {
         return filePath;
     }
 
-    private static void sendSourceCode(JudgeCommand judgeCommand, String filePath) {
-        filePath = "/mnt/c/Users/SSAFY/sourceCode/" + judgeCommand.problemId() + "/Main.java"; //todo 제거
-        final String destPath = ISOLATE_ROOT + judgeCommand.problemId() + "/box/";
+    private static void sendSourceCode(JudgeCommand judgeCommand, int boxId, String filePath) {
+        filePath = "/mnt/c/Users/SSAFY/sourceCode/" + judgeCommand.problemId() + "/Main.class"; //todo 제거
+        final String destPath = ISOLATE_ROOT + boxId + "/box/";
 
         final String makeDestDirCommand = "mkdir -p " + destPath;
         final String sendSourceCodeCommand = "cp " + filePath + " " + destPath;
@@ -94,6 +112,7 @@ public class JudgeService {
     private static int getTotalTestcaseCount(JudgeCommand judgeCommand) {
         final String baseDir = System.getProperty("user.home");
         final String dirPath = baseDir + "/testcases/" + judgeCommand.problemId(); //todo 배포 환경으로 맞게 변경
+
         File dir = new File(dirPath);
         if (!dir.exists() || !dir.isDirectory()) {
             throw new IllegalArgumentException("디렉토리가 유효하지 않습니다! [경로: %s]".formatted(dirPath));
@@ -102,9 +121,9 @@ public class JudgeService {
         return dir.list((f, name) -> name.contains(".in")).length;
     }
 
-    private static void sendTestcase(JudgeCommand judgeCommand) {
-        final String originPath = "/mnt/c/Users/SSAFY/testcases/" + judgeCommand.problemId(); //todo 배포 환경으로 맞게 변경
-        final String destPath = ISOLATE_ROOT + judgeCommand.problemId() + "/box/testcases/";
+    private static void sendTestcase(JudgeCommand judgeCommand, int boxId, int testcaseNum) {
+        final String originPath = "/mnt/c/Users/SSAFY/testcases/" + judgeCommand.problemId() + "/" + testcaseNum + ".*"; //todo 배포 환경으로 맞게 변경
+        final String destPath = ISOLATE_ROOT + boxId + "/box/testcases";
 
         final String makeDestDirCommand = "mkdir -p " + destPath;
         final String copyTestcaseCommand = "cp -r " + originPath + " " + destPath;
@@ -125,18 +144,11 @@ public class JudgeService {
     }
 
     private static void compile(JudgeCommand judgeCommand) {
+        final String baseDir = System.getProperty("user.home");
+        final String filePath = baseDir + "/sourceCode/" + judgeCommand.problemId() + "/Main.java"; //todo 배포 환경으로 맞게 변경
+
         ProcessBuilder pb = new ProcessBuilder(
-                "wsl", "-d", "ubuntu", "-u", "root", "--",
-                "isolate",
-                "--box-id=" + judgeCommand.problemId(),
-                "--processes=128",
-                "--dir=/usr/lib/jvm",
-                "--dir=/etc/java-17-openjdk/security",
-                "--run",
-                "--",
-                "/usr/lib/jvm/java-17-openjdk-amd64/bin/javac",
-                "-encoding", "UTF-8",
-                "Main.java"
+                "javac", filePath
         );
 
         try {
@@ -148,17 +160,17 @@ public class JudgeService {
         }
     }
 
-    private static String executeSourceCode(JudgeCommand judgeCommand, int testcaseNum) {
+    private static String executeSourceCode(JudgeCommand judgeCommand, int boxId, int testcaseNum) {
         ProcessBuilder pb = new ProcessBuilder(
                 "wsl", "-d", "ubuntu", "-u", "root", "--",
                 "isolate",
-                "--box-id=" + judgeCommand.problemId(),
+                "--box-id=" + boxId,
                 "--processes=128",
                 "--dir=/usr/lib/jvm",
                 "--dir=/etc/java-17-openjdk/security",
-                "--stdin=testcases/" + judgeCommand.problemId() + "/" + testcaseNum + ".in",
+                "--stdin=testcases/" + testcaseNum + ".in",
                 "--stdout=" + testcaseNum + "_output.txt",
-                "--stderr=err.txt",
+                "--stderr=" + testcaseNum + "_err.txt",
                 "--time=" + judgeCommand.timeLimit(),
                 "--mem=" + 40960000, //4GB
                 "--run",
@@ -178,9 +190,9 @@ public class JudgeService {
         return "";
     }
 
-    private static boolean checkAnswer(JudgeCommand command, int testcaseNum) {
-        final String boxRoot = ISOLATE_ROOT + command.problemId() + "/box/";
-        final String answerFile = boxRoot + "testcases" + "/" + command.problemId() + "/" + testcaseNum + ".out";
+    private static boolean checkAnswer(JudgeCommand command, int boxId, int testcaseNum) {
+        final String boxRoot = ISOLATE_ROOT + boxId + "/box/";
+        final String answerFile = boxRoot + "testcases/" + testcaseNum + ".out";
         final String outputFile = boxRoot + testcaseNum + "_output.txt";
 
         ProcessBuilder pb = new ProcessBuilder(
@@ -199,15 +211,15 @@ public class JudgeService {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
-//        System.out.println(testcaseNum + "번 결과: " + (isCorrect ? "정답" : "오답"));
+        log.debug(testcaseNum + "번 결과: " + (isCorrect ? "정답" : "오답"));
         return isCorrect;
     }
 
-    private static void cleanup(JudgeCommand judgeCommand) {
+    private static void cleanup(int boxId) {
         ProcessBuilder pb = new ProcessBuilder(
                 "wsl", "-d", "ubuntu", "-u", "root", "--",
                 "isolate",
-                "--box-id=" + judgeCommand.problemId(),
+                "--box-id=" + boxId,
                 "--cleanup"
         );
 
