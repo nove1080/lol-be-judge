@@ -4,37 +4,26 @@ import com.ssafy.c204_be_judge.judge.command.JudgeCommand;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.sql.Array;
 import java.util.ArrayList;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @ActiveProfiles("test")
 class JudgeServiceTest {
 
     @Autowired
+    @Qualifier("judgeServiceV2")
     private JudgeService judgeService;
-    @Autowired
-    private JudgeServiceV2 judgeServiceV2;
-
-    @Test
-    @DisplayName("테스트케이스 80개를 순차 처리")
-    void example() {
-        JudgeCommand judgeCommand = getJudgeCommand(1L);
-        judgeService.run(judgeCommand);
-    }
 
     @Test
     @DisplayName("채점서비스 v2 테스트")
     void judgeServiceV2() {
         System.out.println("사용 가능한 스레드 : " + Runtime.getRuntime().availableProcessors());
         JudgeCommand judgeCommand = getJudgeCommand(1L);
-        judgeServiceV2.run(judgeCommand);
+        judgeService.run(judgeCommand);
     }
 
     @Test

@@ -9,6 +9,7 @@ import lombok.*;
 @Builder
 public class JudgeMessage {
 
+    private Long playerId;
     private Long problemId;
     private String programmingLanguage;
     private String sourceCode;

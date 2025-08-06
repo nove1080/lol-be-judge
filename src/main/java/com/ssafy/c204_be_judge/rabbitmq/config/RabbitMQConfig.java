@@ -29,7 +29,7 @@ public class RabbitMQConfig {
 
     @Bean
     Queue queue() {
-        return new Queue(judgeQueueProperties.getQueueName(), false);
+        return new Queue(judgeQueueProperties.getQueueName(), true);
     }
 
     @Bean
