@@ -18,15 +18,12 @@ spring:
         format_sql: true
         dialect: org.hibernate.dialect.MySQL8Dialect
 
-  rabbitmq:
-    host: ${RABBITMQ_HOST}
-    port: ${RABBITMQ_PORT}
-    username: ${RABBITMQ_USERNAME}
-    password: ${RABBITMQ_PASSWORD}
-    judge:
-      exchange-name: judge.exchange
-      queue-name: judge.queue
-      routing-key: judge.routing.#
+#AWS
+aws:
+  region: ${AWS_REGION}
+  access-key: ${AWS_ACCESS_KEY}
+  secret-key: ${AWS_SECRET_KEY}
+  sqs-queue-name: ${AWS_SQS_QUEUE_NAME}
 
 logging:
   level:

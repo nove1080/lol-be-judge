@@ -1,6 +1,7 @@
 buildscript {
 	ext {
 		p6spyVersion = '1.9.0'
+		awsSdkVersion = '2.32.9'
 	}
 }
 
@@ -30,12 +31,13 @@ repositories {
 }
 
 dependencies {
-	/** RabbitMQ */
-	implementation 'org.springframework.boot:spring-boot-starter-amqp'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
 
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 
-	implementation 'org.springframework.boot:spring-boot-starter-web'
+	/** AWS SDK for Java 2.x */
+	implementation(platform("software.amazon.awssdk:bom:${awsSdkVersion}"))
+	implementation("software.amazon.awssdk:sqs")
 
 	/** p6spy */
 	implementation "com.github.gavlyukovskiy:p6spy-spring-boot-starter:${p6spyVersion}"
@@ -49,8 +51,6 @@ dependencies {
 	runtimeOnly 'com.mysql:mysql-connector-j'
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-
-	testImplementation 'org.springframework.amqp:spring-rabbit-test'
 
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
