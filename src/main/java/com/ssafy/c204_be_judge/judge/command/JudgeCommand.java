@@ -1,6 +1,6 @@
 package com.ssafy.c204_be_judge.judge.command;
 
-import com.ssafy.c204_be_judge.rabbitmq.message.JudgeMessage;
+import com.ssafy.c204_be_judge.aws.service.message.JudgeMessage;
 import lombok.Builder;
 
 @Builder
@@ -14,11 +14,11 @@ public record JudgeCommand (
 
     public static JudgeCommand from(JudgeMessage message) {
         return JudgeCommand.builder()
-                .problemId(message.getProblemId())
-                .programmingLanguage(message.getProgrammingLanguage())
-                .sourceCode(message.getSourceCode())
-                .timeLimit(message.getTimeLimit())
-                .memoryLimit(message.getMemoryLimit())
+                .problemId(message.problemId())
+                .programmingLanguage(message.programmingLanguage())
+                .sourceCode(message.sourceCode())
+                .timeLimit(message.timeLimit())
+                .memoryLimit(message.memoryLimit())
                 .build();
     }
 
