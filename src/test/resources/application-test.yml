@@ -11,8 +11,6 @@ spring:
     password: ${MYSQL_LOCAL_PASSWORD}
 
   jpa:
-    hibernate:
-      ddl-auto: update
     properties:
       hibernate:
         format_sql: true
@@ -35,3 +33,8 @@ decorator:
   datasource:
     p6spy:
       enable-logging: true
+
+judge:
+  api-server:
+    base-url: ${LOCAL_API_SERVER_URL}
+    result-path: ${JUDGE_RESULT_API_PATH}
