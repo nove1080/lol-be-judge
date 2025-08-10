@@ -3,6 +3,8 @@ package com.ssafy.c204_be_judge.judge.worker;
 import com.ssafy.c204_be_judge.judge.command.JudgeCommand;
 import com.ssafy.c204_be_judge.judge.domain.JudgeResult;
 import com.ssafy.c204_be_judge.judge.domain.TestcaseResult;
+import com.ssafy.c204_be_judge.validation.exception.CompileException;
+import com.ssafy.c204_be_judge.validation.exception.JudgeServerException;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,21 +41,21 @@ public class JudgeWorkerForUbuntu implements JudgeWorker {
     }
 
     public JudgeResult run(JudgeCommand judgeCommand) {
-        String codePath = writeSourceCode(judgeCommand);
-        if (!compile(codePath)) {
-            return JudgeResult.fail(judgeCommand, "컴파일에 실패하였습니다.");
-        }
-
-        int totalTestcaseCount = getTotalTestcaseCount(judgeCommand);
         List<TestcaseResult> testcaseResults = new ArrayList<>();
 
         try {
-            prepareJudge(codePath);
+            String javaFilePath = writeSourceCode(judgeCommand);
+            String classFilePath = compile(javaFilePath);
+            int totalTestcaseCount = getTotalTestcaseCount(judgeCommand);
+
+            prepareJudge(classFilePath);
+
             for (int start = 1; start <= totalTestcaseCount; start += MAX_THREAD_POOL_SIZE) {
                 int end = Math.min(start + MAX_THREAD_POOL_SIZE - 1, totalTestcaseCount);
                 testcaseResults.addAll(runTestcases(judgeCommand, start, end));
             }
-
+        } catch (CompileException e) {
+            return JudgeResult.fail(judgeCommand, "컴파일에 실패하였습니다.");
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
             return JudgeResult.fail(judgeCommand, "채점 중 오류가 발생하였습니다.");
@@ -176,9 +178,15 @@ public class JudgeWorkerForUbuntu implements JudgeWorker {
         return dir.list((f, name) -> name.contains(".in")).length;
     }
 
-    private static boolean compile(String codePath) {
+    /**
+     * 주어진 Java 파일을 컴파일합니다.
+     * @param javaFilePath 컴파일할 Java 파일의 경로
+     * @return 컴파일된 클래스 파일의 경로
+     * @throws CompileException 컴파일 실패 시 예외 발생
+     */
+    private static String compile(String javaFilePath) throws CompileException {
         ProcessBuilder pb = new ProcessBuilder(
-                "javac", "-J-Xms1024m", "-J-Xmx1920m", "-J-Xss512m", "-encoding", "UTF-8", codePath
+                "javac", "-J-Xms1024m", "-J-Xmx1920m", "-J-Xss512m", "-encoding", "UTF-8", javaFilePath
         );
 
         try {
@@ -187,16 +195,14 @@ public class JudgeWorkerForUbuntu implements JudgeWorker {
 
             int exitCode = process.waitFor();
             if (exitCode != 0) {
-                return false;
+                throw new CompileException("컴파일에 실패하였습니다. [경로: %s]".formatted(javaFilePath));
             }
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            throw new CompileException("컴파일에 실패하였습니다. [경로: %s]".formatted(javaFilePath), e);
         }
 
-        return true;
+        return javaFilePath.replaceAll("\\.java$", ".class");
     }
 
     private static String executeSourceCode(JudgeCommand judgeCommand, int boxId, int testcaseNum) {
