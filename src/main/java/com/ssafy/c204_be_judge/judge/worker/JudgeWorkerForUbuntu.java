@@ -153,7 +153,7 @@ public class JudgeWorkerForUbuntu implements JudgeWorker {
         final String sendSourceCodeCommand = "cp " + codePath + " " + getSandboxPath(boxId);
 
         ProcessBuilder pb = new ProcessBuilder(
-                "/bin/sh", "-c", "sudo ", makeDestDirCommand + " && " + sendSourceCodeCommand
+                "/bin/sh", "-c", "sudo " + makeDestDirCommand + " && " + sendSourceCodeCommand
         );
 
         try {
