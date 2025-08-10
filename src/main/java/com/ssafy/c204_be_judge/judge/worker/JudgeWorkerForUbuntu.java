@@ -149,11 +149,11 @@ public class JudgeWorkerForUbuntu implements JudgeWorker {
      * @param codePath 컴파일된 소스 코드 파일 경로
      */
     private static void sendSourceCode(int boxId, String codePath) {
-        final String makeDestDirCommand = "mkdir -p " + getSandboxPath(boxId);
-        final String sendSourceCodeCommand = "cp " + codePath + " " + getSandboxPath(boxId);
+        final String makeDestDirCommand = "sudo mkdir -p " + getSandboxPath(boxId);
+        final String sendSourceCodeCommand = "sudo cp " + codePath + " " + getSandboxPath(boxId);
 
         ProcessBuilder pb = new ProcessBuilder(
-                "/bin/sh", "-c", "sudo " + makeDestDirCommand + " && " + sendSourceCodeCommand
+                "/bin/sh", "-c", makeDestDirCommand + " && " + sendSourceCodeCommand
         );
 
         try {
