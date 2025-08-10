@@ -26,6 +26,7 @@ aws:
 logging:
   level:
     org.hibernate.SQL: debug
+    com.ssafy.c204_be_judge.judge: debug
 
 #p6spy
 decorator:
