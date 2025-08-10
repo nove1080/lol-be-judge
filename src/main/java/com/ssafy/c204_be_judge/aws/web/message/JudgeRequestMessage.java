@@ -1,10 +1,11 @@
-package com.ssafy.c204_be_judge.aws.service.message;
+package com.ssafy.c204_be_judge.aws.web.message;
 
 import lombok.Builder;
 
 @Builder
-public record JudgeMessage(
+public record JudgeRequestMessage(
         Long playerId,
+        Long memberId,
         Long problemId,
         String programmingLanguage,
         String sourceCode,

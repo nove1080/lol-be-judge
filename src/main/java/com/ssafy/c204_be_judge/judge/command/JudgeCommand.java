@@ -1,6 +1,6 @@
 package com.ssafy.c204_be_judge.judge.command;
 
-import com.ssafy.c204_be_judge.aws.service.message.JudgeMessage;
+import com.ssafy.c204_be_judge.aws.web.message.JudgeRequestMessage;
 import lombok.Builder;
 
 @Builder
@@ -12,7 +12,7 @@ public record JudgeCommand (
         Integer memoryLimit
 ) {
 
-    public static JudgeCommand from(JudgeMessage message) {
+    public static JudgeCommand from(JudgeRequestMessage message) {
         return JudgeCommand.builder()
                 .problemId(message.problemId())
                 .programmingLanguage(message.programmingLanguage())

@@ -1,4 +1,4 @@
-package com.ssafy.c204_be_judge.judge.result;
+package com.ssafy.c204_be_judge.judge.domain;
 
 import lombok.Builder;
 
