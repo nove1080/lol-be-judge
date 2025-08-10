@@ -215,7 +215,7 @@ public class JudgeWorkerForUbuntu implements JudgeWorker {
                 "--stderr=" + testcaseNum + "_err.txt",
                 "--time=" + judgeCommand.timeLimit(),
                 "--mem=" + 16384000, //16GB
-                "--meta=" + testcaseNum + META_FILE_SUFFIX,
+                "--meta=" + "meta/" + testcaseNum + META_FILE_SUFFIX,
                 "--run",
                 "--",
                 "/usr/lib/jvm/java-17-openjdk-amd64/bin/java",
@@ -264,7 +264,7 @@ public class JudgeWorkerForUbuntu implements JudgeWorker {
      * @return TestcaseResult
      */
     private static TestcaseResult readMetaFile(int testcaseNum) {
-        final String metaFilePath = + testcaseNum + META_FILE_SUFFIX; //todo 제거
+        final String metaFilePath = "meta/" + testcaseNum + META_FILE_SUFFIX;
 
         double runningTime = 0.0;
         int memoryUsage = 0;
