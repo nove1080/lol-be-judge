@@ -1,36 +1,22 @@
 #!/bin/bash
-PROJECT_NAME=c204-be-judge
-IMAGE_NAME=nove1080/c204-be-judge:latest
-CONTAINER_NAME=c204-be-judge
-SERVER_PORT=8082
-TESTCASES_DIR=/home/ubuntu/testcases
+HOME_DIR=/home/ubuntu
+GITLAB_PROJECT_NAME=c204-be-judge
+PROFILE=prod
 
-echo "> 기존 Docker 컨테이너 확인"
-EXISTING_CONTAINER_ID=$(docker ps -a -q --filter "name=$CONTAINER_NAME")
+echo "> 현재 구동중인 애플리케이션 pid 확인"
+CURRENT_PID=$(pgrep -f ${PROJECT_NAME}.*\jar)
 
-if [ -n "$EXISTING_CONTAINER_ID" ]; then
-  echo "> 컨테이너 중지 및 삭제: $CONTAINER_NAME"
-  docker stop $CONTAINER_NAME
-  docker rm $CONTAINER_NAME
+echo "현재 구동 중인 애플리케이션 pid: $CURRENT_PID"
+if [ -z "$CURRENT_PID" ]; then
+        echo "> 현재 구동 중인 애플리케이션이 없으므로 종료하지 않습니다."
 else
-  echo "> 실행 중인 컨테이너 없음"
+        echo "> kill -15 $CURRENT_PID"
+        kill -15 $CURRENT_PID
+        sleep 5
 fi
 
-echo "> Docker 이미지 확인 및 실행"
-docker images | grep $PROJECT_NAME
+echo "> 새 애플리케이션 배포"
+JAR_NAME=$(ls -tr $HOME_DIR/$GITLAB_PROJECT_NAME/*.jar | grep -v "plain" | tail -n 1)
 
-echo "> 최신 Docker 이미지 Pull"
-docker pull $IMAGE_NAME
-
-echo "> 새로운 컨테이너 실행"
-docker run -d \
-  --name $CONTAINER_NAME \
-  --env-file ./.env \
-  -p $SERVER_PORT:$SERVER_PORT \
-  -v $TESTCASES_DIR:$TESTCASES_DIR \
-  $IMAGE_NAME
-
-echo "> 불필요한 Docker 이미지 삭제"
-docker image prune -f
-
-echo "> 배포 완료"
+echo "> JAR Name: $JAR_NAME"
+nohup java -jar -Dspring.profiles.active=$PROFILE $JAR_NAME > $HOME_DIR/$GITLAB_PROJECT_NAME/nohup.out 2>&1 &
