@@ -9,6 +9,7 @@ import com.ssafy.c204_be_judge.validation.exception.JudgeServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -19,6 +20,7 @@ import java.time.LocalDateTime;
 
 @Slf4j
 @Service
+@Profile("!test")
 public class JudgeService {
 
     private final SQSService sqsService;
