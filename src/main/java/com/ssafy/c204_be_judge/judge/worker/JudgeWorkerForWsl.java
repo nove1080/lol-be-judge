@@ -16,15 +16,13 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.stream.IntStream;
 
 /**
- * vs V2:
- *  V3는 샌드박스를 하나만 만듭니다. 혹은 병렬처리할 만큼만?
+ * WSL 환경에서 채점을 수행하는 JudgeWorker 구현체
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class JudgeWorkerV3 implements JudgeWorker {
+public class JudgeWorkerForWsl implements JudgeWorker {
 
-    private static final String OUTPUT_FILE_SUFFIX = "output.txt";
     private static final String META_FILE_SUFFIX = "_meta.txt";
 
     private static final String ISOLATE_ROOT = "/var/lib/isolate/";
