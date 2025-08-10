@@ -30,7 +30,7 @@ public class JudgeService {
     @Value("${judge.api-server.result-path}")
     private String judgeResultApiPath;
 
-    public JudgeService(@Qualifier("judgeWorkerV3") JudgeWorker judgeWorker, SQSService sqsService, RestClient restClient) {
+    public JudgeService(@Qualifier("judgeWorkerForUbuntu") JudgeWorker judgeWorker, SQSService sqsService, RestClient restClient) {
         this.judgeWorker = judgeWorker;
         this.sqsService = sqsService;
         this.restClient = restClient;
