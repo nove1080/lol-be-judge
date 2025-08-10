@@ -10,14 +10,6 @@ spring:
     username: ${MYSQL_PROD_USERNAME}
     password: ${MYSQL_PROD_PASSWORD}
 
-  jpa:
-    hibernate:
-      ddl-auto: update
-    properties:
-      hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.MySQL8Dialect
-
 #AWS
 aws:
   region: ${AWS_REGION}
@@ -27,10 +19,9 @@ aws:
 
 logging:
   level:
-    org.hibernate.SQL: debug
+    com.ssafy.c204_be_judge.judge: debug
 
-#p6spy
-decorator:
-  datasource:
-    p6spy:
-      enable-logging: false
+judge:
+  api-server:
+    base-url: ${PROD_API_SERVER_URL}
+    result-path: ${JUDGE_RESULT_API_PATH}
