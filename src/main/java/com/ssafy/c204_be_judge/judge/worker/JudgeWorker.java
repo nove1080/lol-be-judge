@@ -3,6 +3,7 @@ package com.ssafy.c204_be_judge.judge.worker;
 import com.ssafy.c204_be_judge.judge.command.JudgeCommand;
 import com.ssafy.c204_be_judge.judge.domain.JudgeResult;
 import com.ssafy.c204_be_judge.judge.domain.TestcaseResult;
+import com.ssafy.c204_be_judge.validation.exception.CompileException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 
@@ -22,6 +23,10 @@ public abstract class JudgeWorker {
     protected static final String META_FILE_SUFFIX = "_meta.txt";
 
     public abstract JudgeResult run(JudgeCommand judgeCommand);
+
+    protected abstract String compile(String filePath) throws CompileException;
+
+    protected abstract String executeSourceCode(JudgeCommand judgeCommand, int boxId, int testcaseNum);
 
     protected static void prepareSandbox(int boxId) {
         ProcessBuilder pb = new ProcessBuilder(
@@ -49,6 +54,47 @@ public abstract class JudgeWorker {
         }
 
         return dir.list((f, name) -> name.contains(".in")).length;
+    }
+
+    protected static String writeSourceCode(JudgeCommand judgeCommand, String fileName) {
+        final String codePath = HOME_DIR + "/sourceCode/" + judgeCommand.problemId() + "/" + fileName;
+
+        File file = new File(codePath);
+        file.getParentFile().mkdirs();
+
+        try {
+            BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+
+            writer.write(judgeCommand.sourceCode());
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+
+        return codePath;
+    }
+
+    /**
+     * 주어진 파일 경로의 소스 코드를 지정된 박스에 복사합니다.
+     * @param boxId 박스 ID
+     * @param codePath 컴파일된 소스 코드 파일 경로
+     */
+    protected static void sendSourceCode(int boxId, String codePath) {
+        final String makeDestDirCommand = "sudo mkdir -p " + getSandboxPath(boxId);
+        final String sendSourceCodeCommand = "sudo cp " + codePath + " " + getSandboxPath(boxId);
+
+        ProcessBuilder pb = new ProcessBuilder(
+                "/bin/sh", "-c", makeDestDirCommand + " && " + sendSourceCodeCommand
+        );
+
+        try {
+            Process process = pb.start();
+            logging(process);
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
     }
 
     protected static boolean checkAnswer(JudgeCommand command, int boxId, int testcaseNum) {

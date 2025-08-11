@@ -27,6 +27,8 @@ import java.util.stream.IntStream;
 @RequiredArgsConstructor
 public class JudgeWorkerForJava extends JudgeWorker {
 
+    private static final String JAVA_FILE_NAME = "Main.java";
+
     @PostConstruct
     public void init() {
         log.debug("JudgeWorkerForJava initialized with THREAD_POOL_SIZE={}", MAX_THREAD_POOL_SIZE);
@@ -36,7 +38,7 @@ public class JudgeWorkerForJava extends JudgeWorker {
         List<TestcaseResult> testcaseResults = new ArrayList<>();
 
         try {
-            String javaFilePath = writeSourceCode(judgeCommand);
+            String javaFilePath = writeSourceCode(judgeCommand, JAVA_FILE_NAME);
             String classFilePath = compile(javaFilePath);
             int totalTestcaseCount = getTotalTestcaseCount(judgeCommand);
 
@@ -66,7 +68,7 @@ public class JudgeWorkerForJava extends JudgeWorker {
      * @throws InterruptedException
      * @throws ExecutionException
      */
-    private static List<TestcaseResult> runTestcases(JudgeCommand judgeCommand, int start, int end) throws InterruptedException, ExecutionException {
+    private List<TestcaseResult> runTestcases(JudgeCommand judgeCommand, int start, int end) throws InterruptedException, ExecutionException {
         return new ForkJoinPool(MAX_THREAD_POOL_SIZE).submit(() ->
                 IntStream.rangeClosed(start, end)
                         .parallel()
@@ -95,50 +97,9 @@ public class JudgeWorkerForJava extends JudgeWorker {
         ).get();
     }
 
-    private static boolean runTestcase(JudgeCommand judgeCommand, int boxId, int testcase) {
+    private boolean runTestcase(JudgeCommand judgeCommand, int boxId, int testcase) {
         executeSourceCode(judgeCommand, boxId, testcase);
         return checkAnswer(judgeCommand, boxId, testcase);
-    }
-
-    private static String writeSourceCode(JudgeCommand judgeCommand) {
-        final String codePath = HOME_DIR + "/sourceCode/" + judgeCommand.problemId() + "/Main.java";
-
-        File file = new File(codePath);
-        file.getParentFile().mkdirs();
-
-        try {
-            BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-
-            writer.write(judgeCommand.sourceCode());
-            writer.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
-
-        return codePath;
-    }
-
-    /**
-     * 주어진 파일 경로의 소스 코드를 지정된 박스에 복사합니다.
-     * @param boxId 박스 ID
-     * @param codePath 컴파일된 소스 코드 파일 경로
-     */
-    private static void sendSourceCode(int boxId, String codePath) {
-        final String makeDestDirCommand = "sudo mkdir -p " + getSandboxPath(boxId);
-        final String sendSourceCodeCommand = "sudo cp " + codePath + " " + getSandboxPath(boxId);
-
-        ProcessBuilder pb = new ProcessBuilder(
-                "/bin/sh", "-c", makeDestDirCommand + " && " + sendSourceCodeCommand
-        );
-
-        try {
-            Process process = pb.start();
-            logging(process);
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
     }
 
     /**
@@ -147,7 +108,7 @@ public class JudgeWorkerForJava extends JudgeWorker {
      * @return 컴파일된 클래스 파일의 경로
      * @throws CompileException 컴파일 실패 시 예외 발생
      */
-    private static String compile(String javaFilePath) throws CompileException {
+    protected String compile(String javaFilePath) throws CompileException {
         ProcessBuilder pb = new ProcessBuilder(
                 "javac", "-J-Xms1024m", "-J-Xmx1920m", "-J-Xss512m", "-encoding", "UTF-8", javaFilePath
         );
@@ -168,7 +129,7 @@ public class JudgeWorkerForJava extends JudgeWorker {
         return javaFilePath.replaceAll("\\.java$", ".class");
     }
 
-    private static String executeSourceCode(JudgeCommand judgeCommand, int boxId, int testcaseNum) {
+    protected String executeSourceCode(JudgeCommand judgeCommand, int boxId, int testcaseNum) {
         final String testcasePath = HOME_DIR + "/" + TESTCASE_PATH + judgeCommand.problemId();
 
         ProcessBuilder pb = new ProcessBuilder(
@@ -182,7 +143,7 @@ public class JudgeWorkerForJava extends JudgeWorker {
                 "--stdin=" + testcasePath + "/" + testcaseNum + ".in",
                 "--stdout=" + testcaseNum + OUTPUT_FILE_SUFFIX,
                 "--stderr=" + testcaseNum + ERROR_FILE_SUFFIX,
-                "--time=" + judgeCommand.timeLimit(),
+                "--time=" + judgeCommand.timeLimit() * 2 + 1, // 2배 + 1초 여유
                 "--mem=" + 16384000, //16GB
                 "--meta=" + "meta/" + testcaseNum + META_FILE_SUFFIX,
                 "--run",
