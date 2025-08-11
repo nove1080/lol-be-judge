@@ -51,6 +51,8 @@ public class JudgeService {
             result = judgeWorkerMap.get("judgeWorkerForJava").run(JudgeCommand.from(message));
         } else if (ProgrammingLanguage.isPython(message.programmingLanguage())) {
             result = judgeWorkerMap.get("judgeWorkerForPython").run(JudgeCommand.from(message));
+        } else if (ProgrammingLanguage.isCpp(message.programmingLanguage())) {
+            result = judgeWorkerMap.get("judgeWorkerForCpp").run(JudgeCommand.from(message));
         } else {
             result = JudgeResult.fail(JudgeCommand.from(message), "지원하지 않는 프로그래밍 언어입니다: " + message.programmingLanguage());
         }
