@@ -106,8 +106,9 @@ public class JudgeWorkerForCpp extends JudgeWorker {
      * @throws CompileException 컴파일 실패 시 예외 발생
      */
     protected String compile(String filePath) throws CompileException {
+        String compiledFilePath = filePath.replaceAll("\\.cpp$", "");
         ProcessBuilder pb = new ProcessBuilder(
-                "g++", filePath, "-o", "Main", "-O2", "-Wall", "-lm", "-static", "-std=gnu++17"
+                "g++", filePath, "-o", compiledFilePath, "-O2", "-Wall", "-lm", "-static", "-std=gnu++17"
         );
 
         try {
@@ -123,7 +124,7 @@ public class JudgeWorkerForCpp extends JudgeWorker {
             throw new CompileException("컴파일에 실패하였습니다. [경로: %s]".formatted(filePath), e);
         }
 
-        return filePath.replaceAll("\\.cpp$", "");
+        return compiledFilePath;
     }
 
     protected String executeSourceCode(JudgeCommand judgeCommand, int boxId, int testcaseNum) {
