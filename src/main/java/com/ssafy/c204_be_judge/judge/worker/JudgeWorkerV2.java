@@ -30,6 +30,7 @@ import java.util.stream.IntStream;
  */
 @Slf4j
 @Component
+@Deprecated
 @RequiredArgsConstructor
 public class JudgeWorkerV2 implements JudgeWorker {
 
