@@ -224,7 +224,7 @@ public class JudgeWorkerForUbuntu implements JudgeWorker {
                 "--meta=" + "meta/" + testcaseNum + META_FILE_SUFFIX,
                 "--run",
                 "--",
-                "/usr/lib/jvm/java-17-openjdk-amd64/bin/java",
+                "/usr/lib/jvm/java-17-openjdk-arm64/bin/java",
                 "-Xms1024m", "-Xmx1920m", "-Xss512m", "-Dfile.encoding=UTF-8", "-XX:+UseSerialGC",
                 "Main"
         );
