@@ -104,13 +104,13 @@ public class JudgeWorkerForJava extends JudgeWorker {
 
     /**
      * 주어진 Java 파일을 컴파일합니다.
-     * @param javaFilePath 컴파일할 Java 파일의 경로
+     * @param filePath 컴파일할 Java 파일의 경로
      * @return 컴파일된 클래스 파일의 경로
      * @throws CompileException 컴파일 실패 시 예외 발생
      */
-    protected String compile(String javaFilePath) throws CompileException {
+    protected String compile(String filePath) throws CompileException {
         ProcessBuilder pb = new ProcessBuilder(
-                "javac", "-J-Xms1024m", "-J-Xmx1920m", "-J-Xss512m", "-encoding", "UTF-8", javaFilePath
+                "javac", "-J-Xms1024m", "-J-Xmx1920m", "-J-Xss512m", "-encoding", "UTF-8", filePath
         );
 
         try {
@@ -119,14 +119,14 @@ public class JudgeWorkerForJava extends JudgeWorker {
 
             int exitCode = process.waitFor();
             if (exitCode != 0) {
-                throw new CompileException("컴파일에 실패하였습니다. [경로: %s]".formatted(javaFilePath));
+                throw new CompileException("컴파일에 실패하였습니다. [경로: %s]".formatted(filePath));
             }
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
-            throw new CompileException("컴파일에 실패하였습니다. [경로: %s]".formatted(javaFilePath), e);
+            throw new CompileException("컴파일에 실패하였습니다. [경로: %s]".formatted(filePath), e);
         }
 
-        return javaFilePath.replaceAll("\\.java$", ".class");
+        return filePath.replaceAll("\\.java$", ".class");
     }
 
     protected String executeSourceCode(JudgeCommand judgeCommand, int boxId, int testcaseNum) {
