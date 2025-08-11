@@ -4,10 +4,11 @@ import com.ssafy.c204_be_judge.aws.web.client.SQSService;
 import com.ssafy.c204_be_judge.aws.web.message.JudgeRequestMessage;
 import com.ssafy.c204_be_judge.judge.command.JudgeCommand;
 import com.ssafy.c204_be_judge.judge.domain.JudgeResult;
+import com.ssafy.c204_be_judge.judge.domain.ProgrammingLanguage;
 import com.ssafy.c204_be_judge.judge.worker.JudgeWorker;
 import com.ssafy.c204_be_judge.validation.exception.JudgeServerException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatusCode;
@@ -17,14 +18,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Slf4j
 @Service
 @Profile("!test")
+@RequiredArgsConstructor
 public class JudgeService {
 
     private final SQSService sqsService;
-    private final JudgeWorker judgeWorker;
+    private final Map<String, JudgeWorker> judgeWorkerMap;
     private final RestClient restClient;
 
     @Value("${judge.api-server.base-url}")
@@ -32,21 +35,23 @@ public class JudgeService {
     @Value("${judge.api-server.result-path}")
     private String judgeResultApiPath;
 
-    public JudgeService(@Qualifier("judgeWorkerForUbuntu") JudgeWorker judgeWorker, SQSService sqsService, RestClient restClient) {
-        this.judgeWorker = judgeWorker;
-        this.sqsService = sqsService;
-        this.restClient = restClient;
-    }
-
     @Scheduled(fixedDelay = 2000)
     public JudgeResult startWorker() {
         JudgeRequestMessage message = sqsService.receiveFromJudgeQueue();
+        JudgeResult result = doJudge(message);
+        sendToAPIServer(message.memberId(), result);
+        return result;
+    }
+
+    private JudgeResult doJudge(JudgeRequestMessage message) {
         Long start = System.currentTimeMillis();
-        JudgeResult result = judgeWorker.run(JudgeCommand.from(message));
+        JudgeResult result = null;
+        if (ProgrammingLanguage.isJava(message.programmingLanguage())) {
+            result = judgeWorkerMap.get("judgeWorkerForJava").run(JudgeCommand.from(message));
+        }
         Long end = System.currentTimeMillis();
 
         log.info("채점 소요 시간: {}ms | memberId: {} | problemId: {} | 시간: {}", end - start, message.memberId(), message.problemId(), LocalDateTime.now());
-        sendToAPIServer(message.memberId(), result);
         return result;
     }
 
