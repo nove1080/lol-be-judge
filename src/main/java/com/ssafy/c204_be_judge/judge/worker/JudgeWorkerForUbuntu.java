@@ -4,7 +4,6 @@ import com.ssafy.c204_be_judge.judge.command.JudgeCommand;
 import com.ssafy.c204_be_judge.judge.domain.JudgeResult;
 import com.ssafy.c204_be_judge.judge.domain.TestcaseResult;
 import com.ssafy.c204_be_judge.validation.exception.CompileException;
-import com.ssafy.c204_be_judge.validation.exception.JudgeServerException;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +32,7 @@ public class JudgeWorkerForUbuntu implements JudgeWorker {
     private static final String TESTCASE_PATH = "testcases/";
 
     private static final String OUTPUT_FILE_SUFFIX = "_output.txt";
+    private static final String ERROR_FILE_SUFFIX = "_err.txt";
     private static final String META_FILE_SUFFIX = "_meta.txt";
 
     @PostConstruct
@@ -217,8 +217,8 @@ public class JudgeWorkerForUbuntu implements JudgeWorker {
                 "--dir=/etc/java-17-openjdk/security",
                 "--dir=" + testcasePath,
                 "--stdin=" + testcasePath + "/" + testcaseNum + ".in",
-                "--stdout=" + testcaseNum + "_output.txt",
-                "--stderr=" + testcaseNum + "_err.txt",
+                "--stdout=" + testcaseNum + OUTPUT_FILE_SUFFIX,
+                "--stderr=" + testcaseNum + ERROR_FILE_SUFFIX,
                 "--time=" + judgeCommand.timeLimit(),
                 "--mem=" + 16384000, //16GB
                 "--meta=" + "meta/" + testcaseNum + META_FILE_SUFFIX,
