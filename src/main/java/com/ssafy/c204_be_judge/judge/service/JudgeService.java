@@ -44,14 +44,20 @@ public class JudgeService {
     }
 
     private JudgeResult doJudge(JudgeRequestMessage message) {
-        Long start = System.currentTimeMillis();
         JudgeResult result = null;
+
+        Long start = System.currentTimeMillis();
         if (ProgrammingLanguage.isJava(message.programmingLanguage())) {
             result = judgeWorkerMap.get("judgeWorkerForJava").run(JudgeCommand.from(message));
+        } else if (ProgrammingLanguage.isPython(message.programmingLanguage())) {
+            result = judgeWorkerMap.get("judgeWorkerForPython").run(JudgeCommand.from(message));
+        } else {
+            result = JudgeResult.fail(JudgeCommand.from(message), "지원하지 않는 프로그래밍 언어입니다: " + message.programmingLanguage());
         }
-        Long end = System.currentTimeMillis();
 
-        log.info("채점 소요 시간: {}ms | memberId: {} | problemId: {} | 시간: {}", end - start, message.memberId(), message.problemId(), LocalDateTime.now());
+        Long end = System.currentTimeMillis();
+        log.debug("채점 소요 시간: {}ms | memberId: {} | problemId: {} | 시간: {}", end - start, message.memberId(), message.problemId(), LocalDateTime.now());
+
         return result;
     }
 
