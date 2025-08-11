@@ -35,8 +35,8 @@ public class JudgeWorkerForPython extends JudgeWorker {
         List<TestcaseResult> testcaseResults = new ArrayList<>();
 
         try {
-            String javaFilePath = writeSourceCode(judgeCommand, PYTHON_FILE_NAME);
-            String classFilePath = compile(javaFilePath);
+            String pythonFilePath = writeSourceCode(judgeCommand, PYTHON_FILE_NAME);
+            String classFilePath = compile(pythonFilePath);
             int totalTestcaseCount = getTotalTestcaseCount(judgeCommand);
 
             prepareJudge(classFilePath);
@@ -107,7 +107,7 @@ public class JudgeWorkerForPython extends JudgeWorker {
      */
     protected String compile(String filePath) throws CompileException {
         ProcessBuilder pb = new ProcessBuilder(
-                "python3", "-W", "ignore", "-c", "import py_compile; py_compile.compile(r'Main.py')"
+                "python3", "-W", "ignore", "-c", "import py_compile; py_compile.compile(r'" + filePath + "')"
         );
 
         try {
@@ -123,7 +123,7 @@ public class JudgeWorkerForPython extends JudgeWorker {
             throw new CompileException("컴파일에 실패하였습니다. [경로: %s]".formatted(filePath), e);
         }
 
-        return filePath.replaceAll("\\.java$", ".class");
+        return filePath;
     }
 
     protected String executeSourceCode(JudgeCommand judgeCommand, int boxId, int testcaseNum) {
