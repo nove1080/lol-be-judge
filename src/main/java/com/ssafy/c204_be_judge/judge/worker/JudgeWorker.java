@@ -14,7 +14,7 @@ public abstract class JudgeWorker {
 
     protected static final int MAX_THREAD_POOL_SIZE = Math.max(1, Runtime.getRuntime().availableProcessors());
 
-    protected static final String HOME_DIR = System.getProperty("user.home"); // /home/ubuntu
+    protected static final String HOME_DIR = "/home/ubuntu"; // /home/ubuntu
     protected static final String ISOLATE_ROOT = "/var/lib/isolate/";
     protected static final String TESTCASE_PATH = "testcases/";
 
