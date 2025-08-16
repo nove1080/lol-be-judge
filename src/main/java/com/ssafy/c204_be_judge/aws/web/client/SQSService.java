@@ -2,6 +2,7 @@ package com.ssafy.c204_be_judge.aws.web.client;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.ssafy.c204_be_judge.aws.config.AWSProperties;
 import com.ssafy.c204_be_judge.aws.web.message.JudgeRequestMessage;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +42,7 @@ public class SQSService {
                 .orElseThrow(() -> new NoSuchElementException("채점 요청이 없습니다."));
 
         try {
-            return objectMapper.readValue(message.body(), JudgeRequestMessage.class);
+            return objectMapper.registerModule(new JavaTimeModule()).readValue(message.body(), JudgeRequestMessage.class);
         } catch (JsonProcessingException e) {
             throw new ServerErrorException("메시지를 JudgeMessage로 변환하는데 실패했습니다.", e);
         } finally {
