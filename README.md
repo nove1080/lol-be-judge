@@ -1,9 +1,7 @@
 ## 소개
-***
 본 레포지토리는 [League of algoLogic](https://lab.ssafy.com/skwpqjq/c204-be-api) 프로젝트의 채점 서버 레포지토리입니다.
 
 ## 프로젝트 빌드
-***
 ```shell
 git clone https://lab.ssafy.com/skwpqjq/c204-be-judge.git
 
@@ -16,7 +14,6 @@ java -jar -Dspring.profiles.active=prod c204-be-judge-0.0.1-SNAPSHOT.jar`
 ```
 
 ## 사전 준비
-***
 ### 환경 구축
 #### 1. 프로그래밍 언어 설치
 ```shell
