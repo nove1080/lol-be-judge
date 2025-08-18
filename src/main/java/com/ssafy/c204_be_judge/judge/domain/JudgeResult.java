@@ -5,12 +5,14 @@ import jakarta.annotation.Nullable;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 
 @Slf4j
 @Builder
 public record JudgeResult(
+        Long playerId,
         Long problemId,
         String programmingLanguage,
         Boolean isSolved,
@@ -33,8 +35,7 @@ public record JudgeResult(
      * @return JudgeResult
      */
     public static JudgeResult success(JudgeCommand command, List<TestcaseResult> testcaseResults) {
-        boolean allSolved = testcaseResults.stream()
-                .allMatch(TestcaseResult::isSolved);
+        boolean allSolved = testcaseResults.stream().allMatch(TestcaseResult::isSolved);
 
         Failure failure = null;
         double maxRunningTime = 0.0;
@@ -56,6 +57,7 @@ public record JudgeResult(
         }
 
         return JudgeResult.builder()
+                .playerId(command.playerId())
                 .problemId(command.problemId())
                 .programmingLanguage(command.programmingLanguage())
                 .isSolved(allSolved)
@@ -75,6 +77,7 @@ public record JudgeResult(
      */
     public static JudgeResult fail(JudgeCommand command, String cause) {
         return JudgeResult.builder()
+                .playerId(command.playerId())
                 .problemId(command.problemId())
                 .programmingLanguage(command.programmingLanguage())
                 .isSolved(false)

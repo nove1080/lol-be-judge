@@ -5,6 +5,7 @@ import lombok.Builder;
 
 @Builder
 public record JudgeCommand (
+        Long playerId,
         Long problemId,
         String programmingLanguage,
         String sourceCode,
@@ -14,6 +15,7 @@ public record JudgeCommand (
 
     public static JudgeCommand from(JudgeRequestMessage message) {
         return JudgeCommand.builder()
+                .playerId(message.playerId())
                 .problemId(message.problemId())
                 .programmingLanguage(message.programmingLanguage())
                 .sourceCode(message.sourceCode())

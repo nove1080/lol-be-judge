@@ -2,6 +2,8 @@ package com.ssafy.c204_be_judge.aws.web.message;
 
 import lombok.Builder;
 
+import java.time.LocalDateTime;
+
 @Builder
 public record JudgeRequestMessage(
         Long playerId,
@@ -10,7 +12,8 @@ public record JudgeRequestMessage(
         String programmingLanguage,
         String sourceCode,
         Double timeLimit,
-        Integer memoryLimit
+        Integer memoryLimit,
+        LocalDateTime submittedAt
 ) {
 
 }
