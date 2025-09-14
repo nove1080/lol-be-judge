@@ -1,9 +1,9 @@
 ## 소개
-본 레포지토리는 [League of algoLogic](https://lab.ssafy.com/skwpqjq/c204-be-api) 프로젝트의 채점 서버 레포지토리입니다.
+본 레포지토리는 League of algoLogic 프로젝트의 채점 서버 레포지토리입니다.
 
 ## 프로젝트 빌드
 ```shell
-git clone https://lab.ssafy.com/skwpqjq/c204-be-judge.git
+git clone https://github.com/nove1080/lol-be-judge.git
 
 cd c204-be-judge
 cp <env 파일 경로> .env
