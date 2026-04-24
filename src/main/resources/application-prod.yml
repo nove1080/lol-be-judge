@@ -4,11 +4,6 @@ server:
 spring:
   config:
     import: optional:file:.env[.properties]
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${MYSQL_PROD_HOST}:${MYSQL_PROD_PORT}/${MYSQL_DATABASE}?serverTimezone=Asia/Seoul&characterEncoding=utf8
-    username: ${MYSQL_PROD_USERNAME}
-    password: ${MYSQL_PROD_PASSWORD}
 
 #AWS
 aws:
