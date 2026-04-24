@@ -10,6 +10,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.IntStream;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.StopWatch;
 import org.springframework.util.StringUtils;
 
 import java.io.*;
@@ -33,19 +34,33 @@ public abstract class JudgeWorker {
     protected abstract List<String> getRunCommand(JudgeCommand judgeCommand, int boxId, int testcaseNum);
 
     public JudgeResult run(JudgeCommand judgeCommand) {
+        StopWatch stopWatch = new StopWatch();
         List<TestcaseResult> testcaseResults = new ArrayList<>();
 
         try {
+            stopWatch.start("1. write source code");
             String filePath = writeSourceCode(judgeCommand, getFileName());
+            stopWatch.stop();
+
+            stopWatch.start("2. compile");
             String classFilePath = compile(filePath);
+            stopWatch.stop();
+
             int totalTestcaseCount = getTotalTestcaseCount(judgeCommand);
 
+            stopWatch.start("3. prepare sandbox & send source code to box");
             prepareJudge(classFilePath);
+            stopWatch.stop();
 
+            stopWatch.start("4. run testcases");
             for (int start = 1; start <= totalTestcaseCount; start += MAX_THREAD_POOL_SIZE) {
                 int end = Math.min(start + MAX_THREAD_POOL_SIZE - 1, totalTestcaseCount);
                 testcaseResults.addAll(runTestcases(judgeCommand, start, end));
             }
+            stopWatch.stop();
+
+            log.info("채점 과정별 소요 시간: {}", stopWatch.prettyPrint());
+            log.info("채점 완료! 소요 시간: {}초", stopWatch.getTotalTimeSeconds());
         } catch (CompileException e) {
             return JudgeResult.fail(judgeCommand, "컴파일에 실패하였습니다.");
         } catch (InterruptedException | ExecutionException e) {
