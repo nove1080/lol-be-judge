@@ -7,6 +7,8 @@ import com.ssafy.c204_be_judge.judge.domain.Failure;
 import com.ssafy.c204_be_judge.judge.domain.JudgeResult;
 import com.ssafy.c204_be_judge.judge.domain.ProgrammingLanguage;
 import com.ssafy.c204_be_judge.judge.domain.TestcaseResult;
+import com.ssafy.c204_be_judge.judge.strategy.JudgeStrategy;
+import com.ssafy.c204_be_judge.judge.strategy.JudgeStrategyFactory;
 import com.ssafy.c204_be_judge.judge.worker.JudgeWorker;
 import com.ssafy.c204_be_judge.validation.exception.JudgeServerException;
 import jakarta.annotation.Nullable;
@@ -22,7 +24,7 @@ import org.springframework.web.client.RestClient;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -31,7 +33,8 @@ import java.util.Map;
 public class JudgeService {
 
     private final SQSService sqsService;
-    private final Map<String, JudgeWorker> judgeWorkerMap;
+    private final JudgeWorker judgeWorker;
+    private final JudgeStrategyFactory judgeStrategyFactory;
     private final RestClient restClient;
 
     @Value("${judge.api-server.base-url}")
@@ -48,17 +51,16 @@ public class JudgeService {
     }
 
     private JudgeResult doJudge(JudgeRequestMessage message) {
-        JudgeResult result = null;
+        JudgeResult result;
 
         Long start = System.currentTimeMillis();
-        if (ProgrammingLanguage.isJava(message.programmingLanguage())) {
-            result = judgeWorkerMap.get("judgeWorkerForJava").run(JudgeCommand.from(message));
-        } else if (ProgrammingLanguage.isPython(message.programmingLanguage())) {
-            result = judgeWorkerMap.get("judgeWorkerForPython").run(JudgeCommand.from(message));
-        } else if (ProgrammingLanguage.isCpp(message.programmingLanguage())) {
-            result = judgeWorkerMap.get("judgeWorkerForCpp").run(JudgeCommand.from(message));
+        JudgeCommand command = JudgeCommand.from(message);
+        Optional<JudgeStrategy> strategyOptional = judgeStrategyFactory.findStrategy(message.programmingLanguage());
+
+        if (strategyOptional.isPresent()) {
+            result = judgeWorker.run(command, strategyOptional.get());
         } else {
-            result = JudgeResult.fail(JudgeCommand.from(message), "지원하지 않는 프로그래밍 언어입니다: " + message.programmingLanguage());
+            result = JudgeResult.fail(command, "지원하지 않는 프로그래밍 언어입니다: " + message.programmingLanguage());
         }
 
         Long end = System.currentTimeMillis();

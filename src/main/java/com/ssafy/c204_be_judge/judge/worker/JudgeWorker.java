@@ -3,47 +3,44 @@ package com.ssafy.c204_be_judge.judge.worker;
 import com.ssafy.c204_be_judge.judge.command.JudgeCommand;
 import com.ssafy.c204_be_judge.judge.domain.JudgeResult;
 import com.ssafy.c204_be_judge.judge.domain.TestcaseResult;
+import com.ssafy.c204_be_judge.judge.strategy.JudgeStrategy;
 import com.ssafy.c204_be_judge.validation.exception.CompileException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.IntStream;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StopWatch;
 import org.springframework.util.StringUtils;
 
-import java.io.*;
-
 @Slf4j
-public abstract class JudgeWorker {
+@Component
+public class JudgeWorker {
 
-    protected static final int MAX_THREAD_POOL_SIZE = Math.max(1, Runtime.getRuntime().availableProcessors());
+    private static final int MAX_THREAD_POOL_SIZE = Math.max(1, Runtime.getRuntime().availableProcessors());
 
-    protected static final String HOME_DIR = "/home/ubuntu"; // /home/ubuntu
-    protected static final String ISOLATE_ROOT = "/var/lib/isolate/";
-    protected static final String TESTCASE_PATH = "testcases/";
+    private static final String HOME_DIR = JudgeStrategy.HOME_DIR;
+    private static final String ISOLATE_ROOT = JudgeStrategy.ISOLATE_ROOT;
+    private static final String TESTCASE_PATH = JudgeStrategy.TESTCASE_PATH;
 
-    protected static final String OUTPUT_FILE_SUFFIX = "_output.txt";
-    protected static final String ERROR_FILE_SUFFIX = "_err.txt";
-    protected static final String META_FILE_SUFFIX = "_meta.txt";
+    private static final String OUTPUT_FILE_SUFFIX = JudgeStrategy.OUTPUT_FILE_SUFFIX;
+    private static final String ERROR_FILE_SUFFIX = JudgeStrategy.ERROR_FILE_SUFFIX;
+    private static final String META_FILE_SUFFIX = JudgeStrategy.META_FILE_SUFFIX;
 
-    protected abstract String getFileName();
-    protected abstract List<String> getCompileCommand(String filePath);
-    protected abstract String getCompiledFilePath(String filePath);
-    protected abstract List<String> getRunCommand(JudgeCommand judgeCommand, int boxId, int testcaseNum);
-
-    public JudgeResult run(JudgeCommand judgeCommand) {
+    public JudgeResult run(JudgeCommand judgeCommand, JudgeStrategy strategy) {
         StopWatch stopWatch = new StopWatch();
         List<TestcaseResult> testcaseResults = new ArrayList<>();
 
         try {
             stopWatch.start("1. write source code");
-            String filePath = writeSourceCode(judgeCommand, getFileName());
+            String filePath = writeSourceCode(judgeCommand, strategy.getFileName());
             stopWatch.stop();
 
             stopWatch.start("2. compile");
-            String classFilePath = compile(filePath);
+            String classFilePath = compile(filePath, strategy);
             stopWatch.stop();
 
             int totalTestcaseCount = getTotalTestcaseCount(judgeCommand);
@@ -55,7 +52,7 @@ public abstract class JudgeWorker {
             stopWatch.start("4. run testcases");
             for (int start = 1; start <= totalTestcaseCount; start += MAX_THREAD_POOL_SIZE) {
                 int end = Math.min(start + MAX_THREAD_POOL_SIZE - 1, totalTestcaseCount);
-                testcaseResults.addAll(runTestcases(judgeCommand, start, end));
+                testcaseResults.addAll(runTestcases(judgeCommand, strategy, start, end));
             }
             stopWatch.stop();
 
@@ -71,8 +68,8 @@ public abstract class JudgeWorker {
         return JudgeResult.success(judgeCommand, testcaseResults);
     }
 
-    protected String compile(String filePath) throws CompileException {
-        ProcessBuilder pb = new ProcessBuilder(getCompileCommand(filePath));
+    private String compile(String filePath, JudgeStrategy strategy) throws CompileException {
+        ProcessBuilder pb = new ProcessBuilder(strategy.getCompileCommand(filePath));
 
         try {
             Process process = pb.start();
@@ -87,7 +84,7 @@ public abstract class JudgeWorker {
             throw new CompileException("컴파일에 실패하였습니다. [경로: %s]".formatted(filePath), e);
         }
 
-        return getCompiledFilePath(filePath);
+        return strategy.getCompiledFilePath(filePath);
     }
 
     private static void prepareJudge(String codePath) throws InterruptedException, ExecutionException {
@@ -101,23 +98,13 @@ public abstract class JudgeWorker {
         ).get();
     }
 
-    /**
-     * 주어진 범위의 테스트케이스를 병렬로 실행합니다. <br>
-     * 병렬처리 크기는 {@link #MAX_THREAD_POOL_SIZE}로 제한됩니다.
-     * @param judgeCommand 채점 명령
-     * @param start 시작 테스트케이스 번호
-     * @param end 종료 테스트케이스 번호
-     * @return 테스트케이스 결과 리스트
-     * @throws InterruptedException
-     * @throws ExecutionException
-     */
-    private List<TestcaseResult> runTestcases(JudgeCommand judgeCommand, int start, int end) throws InterruptedException, ExecutionException {
+    private List<TestcaseResult> runTestcases(JudgeCommand judgeCommand, JudgeStrategy strategy, int start, int end) throws InterruptedException, ExecutionException {
         return new ForkJoinPool(MAX_THREAD_POOL_SIZE).submit(() ->
             IntStream.rangeClosed(start, end)
                 .parallel()
                 .mapToObj(testcase -> {
                     int boxId = testcase % MAX_THREAD_POOL_SIZE + 1;
-                    boolean isSolved = runTestcase(judgeCommand, boxId, testcase);
+                    boolean isSolved = runTestcase(judgeCommand, strategy, boxId, testcase);
 
                     if (isSolved) {
                         return readMetaFile(testcase);
@@ -129,12 +116,12 @@ public abstract class JudgeWorker {
         ).get();
     }
 
-    private boolean runTestcase(JudgeCommand judgeCommand, int boxId, int testcase) {
-        executeSourceCode(judgeCommand, boxId, testcase);
+    private boolean runTestcase(JudgeCommand judgeCommand, JudgeStrategy strategy, int boxId, int testcase) {
+        executeSourceCode(judgeCommand, strategy, boxId, testcase);
         return checkAnswer(judgeCommand, boxId, testcase);
     }
 
-    protected static void prepareSandbox(int boxId) {
+    private static void prepareSandbox(int boxId) {
         ProcessBuilder pb = new ProcessBuilder(
                 "sudo",
                 "isolate",
@@ -151,7 +138,7 @@ public abstract class JudgeWorker {
         }
     }
 
-    protected static int getTotalTestcaseCount(JudgeCommand judgeCommand) {
+    private static int getTotalTestcaseCount(JudgeCommand judgeCommand) {
         final String testcasePath = HOME_DIR + "/testcases/" + judgeCommand.problemId();
 
         File dir = new File(testcasePath);
@@ -162,7 +149,7 @@ public abstract class JudgeWorker {
         return dir.list((f, name) -> name.contains(".in")).length;
     }
 
-    protected static String writeSourceCode(JudgeCommand judgeCommand, String fileName) {
+    private static String writeSourceCode(JudgeCommand judgeCommand, String fileName) {
         final String codePath = HOME_DIR + "/sourceCode/" + judgeCommand.problemId() + "/" + fileName;
 
         File file = new File(codePath);
@@ -181,12 +168,7 @@ public abstract class JudgeWorker {
         return codePath;
     }
 
-    /**
-     * 주어진 파일 경로의 소스 코드를 지정된 박스에 복사합니다.
-     * @param boxId 박스 ID
-     * @param codePath 컴파일된 소스 코드 파일 경로
-     */
-    protected static void sendSourceCode(int boxId, String codePath) {
+    private static void sendSourceCode(int boxId, String codePath) {
         final String makeDestDirCommand = "sudo mkdir -p " + getSandboxPath(boxId);
         final String sendSourceCodeCommand = "sudo cp " + codePath + " " + getSandboxPath(boxId);
 
@@ -203,7 +185,7 @@ public abstract class JudgeWorker {
         }
     }
 
-    protected static boolean checkAnswer(JudgeCommand command, int boxId, int testcaseNum) {
+    private static boolean checkAnswer(JudgeCommand command, int boxId, int testcaseNum) {
         final String answerFile = HOME_DIR + "/" + TESTCASE_PATH + command.problemId() + "/" + testcaseNum + ".out";
         final String outputFile = getSandboxPath(boxId) + testcaseNum + OUTPUT_FILE_SUFFIX;
 
@@ -227,13 +209,7 @@ public abstract class JudgeWorker {
         return isSolved;
     }
 
-    /**
-     * 메타 파일을 읽어 테스트케이스 결과를 생성합니다.
-     *
-     * @param testcaseNum 테스트케이스 번호
-     * @return TestcaseResult
-     */
-    protected static TestcaseResult readMetaFile(int testcaseNum) {
+    private static TestcaseResult readMetaFile(int testcaseNum) {
         final String metaFilePath = "meta/" + testcaseNum + META_FILE_SUFFIX;
 
         double runningTime = 0.0;
@@ -266,8 +242,8 @@ public abstract class JudgeWorker {
         return TestcaseResult.success(testcaseNum, runningTime, memoryUsage);
     }
 
-    private String executeSourceCode(JudgeCommand judgeCommand, int boxId, int testcaseNum) {
-        ProcessBuilder pb = new ProcessBuilder(getRunCommand(judgeCommand, boxId, testcaseNum));
+    private String executeSourceCode(JudgeCommand judgeCommand, JudgeStrategy strategy, int boxId, int testcaseNum) {
+        ProcessBuilder pb = new ProcessBuilder(strategy.getRunCommand(judgeCommand, boxId, testcaseNum));
 
         try {
             Process process = pb.start();
@@ -280,7 +256,7 @@ public abstract class JudgeWorker {
         return "";
     }
 
-    protected static void cleanup(int boxId) {
+    private static void cleanup(int boxId) {
         ProcessBuilder pb = new ProcessBuilder(
                 "sudo",
                 "isolate",
@@ -297,11 +273,11 @@ public abstract class JudgeWorker {
         }
     }
 
-    protected static String getSandboxPath(int boxId) {
+    private static String getSandboxPath(int boxId) {
         return ISOLATE_ROOT + boxId + "/box/";
     }
 
-    protected static void logging(Process process) throws IOException {
+    private static void logging(Process process) throws IOException {
         BufferedReader stdOut = new BufferedReader(new InputStreamReader(process.getInputStream()));
         BufferedReader stdErr = new BufferedReader(new InputStreamReader(process.getErrorStream()));
 
